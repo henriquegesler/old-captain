@@ -92,7 +92,7 @@ public class Agent {
      * @param x coordenada x do ponteiro do mouse.
      * @param y coordenada y do ponteiro do mouse.
      */
-    public void setGoal(int x, int y) {
+    public void setGoal(int x, int y, int heuristic) {
         TileNode startNode = LevelManager.graph
                 .getNodeAtCoordinates(
                         (int) this.position.coords.x,
@@ -103,17 +103,36 @@ public class Agent {
         path.clear();
         pathFinder.metrics.reset();
         // AQUI ESTAMOS CHAMANDO O ALGORITMO A* (instância pathFinder) 
-        pathFinder.searchConnectionPath(startNode, targetNode,
-                new Heuristic<TileNode>() {
-
-            @Override
-            public float estimate(TileNode n, TileNode n1) {
-                throw new UnsupportedOperationException("Deveria ter retornado "
-                        + "um valor para a heurística no arquivo "
-                        + "Agent.java:107, mas o professor resolveu explodir "
-                        + "o programa e deixar você consertar ;)"); 
-            }
-        }, path);
+        if(heuristic == 1){
+            pathFinder.searchConnectionPath(startNode, targetNode,
+                    new Heuristic<TileNode>() {
+                public float estimate(TileNode n, TileNode n1){
+                    return 0;
+                }
+            }, path);
+        }
+        if(heuristic == 2){
+            pathFinder.searchConnectionPath(startNode, targetNode,
+                    new Heuristic<TileNode>() {
+                public float estimate(TileNode n, TileNode n1){
+                    float x, y;
+                    x = n1.getPosition().x - n.getPosition().x;
+                    y = n1.getPosition().y - n.getPosition().y;
+                    return (float) Math.sqrt(Math.pow((double)y,2)+Math.pow((double)x,2))/32;
+                }
+            }, path);
+        }
+        if(heuristic == 3){
+            pathFinder.searchConnectionPath(startNode, targetNode,
+                    new Heuristic<TileNode>() {
+                public float estimate(TileNode n, TileNode n1){
+                    float x, y;
+                    x = (float) ((float) Math.ceil(n1.getPosition().x/32) - Math.ceil(n.getPosition().x/32));
+                    y = (float) ((float) Math.ceil(n1.getPosition().y/32) - Math.ceil(n.getPosition().y/32));
+                    return (float) Math.max(x, y);
+                }
+            }, path);
+        }
         pathIterator = path.iterator();
     }
 
