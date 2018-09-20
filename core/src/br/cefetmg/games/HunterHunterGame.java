@@ -40,6 +40,8 @@ public class HunterHunterGame extends ApplicationAdapter {
     private boolean debugMode = false;
     private MetricsRenderer metricsRenderer;
     private boolean showingMetrics;
+    
+    private int heuristic=1;
 
     public HunterHunterGame() {
         this.windowTitle = "Hunter x Hunter (%d)";
@@ -90,13 +92,22 @@ public class HunterHunterGame extends ApplicationAdapter {
                 if (keycode == Input.Keys.DOWN) {
                     camera.translate(0, 32);
                 }
-                if (keycode == Input.Keys.NUM_1) {
+                if (keycode == Input.Keys.NUM_9) {
                     tiledMap.getLayers().get(0).setVisible(
                             !tiledMap.getLayers().get(0).isVisible());
                 }
-                if (keycode == Input.Keys.NUM_2) {
+                if (keycode == Input.Keys.NUM_0) {
                     tiledMap.getLayers().get(1).setVisible(
                             !tiledMap.getLayers().get(1).isVisible());
+                }
+                if (keycode == Input.Keys.NUM_1) {
+                    heuristic = 1;
+                }
+                if (keycode == Input.Keys.NUM_2) {
+                    heuristic = 2;
+                }
+                if (keycode == Input.Keys.NUM_3) {
+                    heuristic = 3;
                 }
                 if (keycode == Input.Keys.M) {
                     showingMetrics = !showingMetrics;
@@ -114,7 +125,7 @@ public class HunterHunterGame extends ApplicationAdapter {
 
                 // Botão ESQUERDO: posiciona objetivo
                 if (button == Input.Buttons.LEFT) {
-                    agent.setGoal((int) clique.x, (int) clique.y);
+                    agent.setGoal((int) clique.x, (int) clique.y, heuristic);
                 }
                 return true;
             }
