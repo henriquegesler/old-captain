@@ -1,5 +1,6 @@
 # TP1: Batalha entre Batalhões
 
+Para colocar imagem. Trocar depois por uma gravação da batalha ocorrendo
 ![](docs/pathfinding-still.gif)
 
 ## Sobre a codificação
