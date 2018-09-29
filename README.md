@@ -48,29 +48,7 @@ seu objetivo e, em caso afirmativo, define o objetivo como o próximo nó do
 caminho. Veja o trecho de código de `Agent.java:58`:
 
 ```java
-public void update(float delta) {
-    boolean shouldMove = true;
 
-    // verifica se atingimos nosso objetivo imediato
-    if (position.coords.dst2(steeringTarget.coords) < MIN_DISTANCE_CONSIDERED_ZERO_SQUARED) {
-        // procurar se temos outra conexão na nossa rota
-        // e, caso afirmativo, definir o nó de chegada como novo target
-        if (shouldMove = pathIterator.hasNext()) {
-            TileConnection nextConnection = pathIterator.next();
-            TileNode nextNode = nextConnection.getToNode();
-            steeringTarget.coords = nextNode.getPosition();
-
-            // atualiza a velocidade do "seek" de acordo com o terreno (a conexão)
-            this.behavior.maxSpeed = fullSpeed - (fullSpeed / 2.0f) * (nextConnection.getCost() - 1) / (LevelManager.maxCost - 1);
-        }
-    }
-
-    // integra
-    if (shouldMove) {
-        Steering steering = behavior.steer(this.position);
-        position.integrate(steering, delta);
-    }
-}
 ```
 
 O Agente (`Agent.java:95`) recebe um evento de clique quando o usuário clica em
@@ -78,14 +56,7 @@ uma parte do mapa. Nesse momento, acionamos o algoritmo de planejamento para
 traçar a rota:
 
 ```java
-public void setGoal(int x, int y) {
-    TileNode startNode = LevelManager.graph.getNodeAtCoordinates((int) this.position.coords.x, (int) this.position.coords.y);
-    TileNode targetNode = LevelManager.graph.getNodeAtCoordinates(x, y);
 
-    path.clear();
-    pathFinder.searchConnectionPath(startNode, targetNode, new EuclideanDistanceHeuristic(), path);
-    pathIterator = path.iterator();
-}
 ```
 
 ---
