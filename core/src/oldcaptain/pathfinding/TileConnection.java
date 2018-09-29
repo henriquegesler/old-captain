@@ -1,4 +1,4 @@
-package br.cefetmg.games.pathfinding;
+package oldcaptain.pathfinding;
 
 import com.badlogic.gdx.ai.pfa.Connection;
 

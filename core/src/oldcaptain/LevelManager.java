@@ -1,7 +1,7 @@
-package br.cefetmg.games;
+package oldcaptain;
 
-import br.cefetmg.games.pathfinding.GraphGenerator;
-import br.cefetmg.games.pathfinding.TileGraph;
+import oldcaptain.pathfinding.GraphGenerator;
+import oldcaptain.pathfinding.TileGraph;
 import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;

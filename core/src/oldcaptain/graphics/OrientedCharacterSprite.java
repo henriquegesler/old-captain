@@ -1,4 +1,4 @@
-package br.cefetmg.games.graphics;
+package oldcaptain.graphics;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;

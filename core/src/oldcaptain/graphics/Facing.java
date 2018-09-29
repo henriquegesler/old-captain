@@ -1,4 +1,4 @@
-package br.cefetmg.games.graphics;
+package oldcaptain.graphics;
 
 /**
  *

@@ -1,7 +1,7 @@
-package br.cefetmg.games.movement.behavior;
+package oldcaptain.movement.behavior;
 
-import br.cefetmg.games.movement.Position;
-import br.cefetmg.games.movement.Steering;
+import oldcaptain.movement.Position;
+import oldcaptain.movement.Steering;
 import com.badlogic.gdx.math.Vector2;
 
 /**

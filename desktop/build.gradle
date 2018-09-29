@@ -3,12 +3,12 @@ apply plugin: "java"
 sourceCompatibility = 1.7
 sourceSets.main.java.srcDirs = [ "src/" ]
 
-project.ext.mainClassName = "br.cefetmg.games.desktop.DesktopLauncher"
+project.ext.mainClassName = "oldcaptain.desktop.DesktopLauncher"
 project.ext.assetsDir = new File("../core/assets");
 
 
 if (!hasProperty('mainClass')) {
-    ext.mainClass = 'br.cefetmg.games.desktop.DesktopLauncher'
+    ext.mainClass = 'oldcaptain.desktop.DesktopLauncher'
 }
 
 task run(dependsOn: classes, type: JavaExec) {

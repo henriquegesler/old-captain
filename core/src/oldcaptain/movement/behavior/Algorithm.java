@@ -1,8 +1,8 @@
-package br.cefetmg.games.movement.behavior;
+package oldcaptain.movement.behavior;
 
-import br.cefetmg.games.movement.Position;
-import br.cefetmg.games.movement.Target;
-import br.cefetmg.games.movement.Steering;
+import oldcaptain.movement.Position;
+import oldcaptain.movement.Target;
+import oldcaptain.movement.Steering;
 
 /**
  *

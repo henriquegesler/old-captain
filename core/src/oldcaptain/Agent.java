@@ -1,19 +1,20 @@
-package br.cefetmg.games;
+package oldcaptain;
 
-import br.cefetmg.games.graphics.Facing;
-import br.cefetmg.games.movement.Position;
-import br.cefetmg.games.movement.Steering;
-import br.cefetmg.games.movement.Target;
-import br.cefetmg.games.movement.behavior.Algorithm;
-import br.cefetmg.games.movement.behavior.Seek;
-import br.cefetmg.games.pathfinding.TileConnection;
-import br.cefetmg.games.pathfinding.TileNode;
+import oldcaptain.graphics.Facing;
+import oldcaptain.movement.Position;
+import oldcaptain.movement.Steering;
+import oldcaptain.movement.Target;
+import oldcaptain.movement.behavior.Algorithm;
+import oldcaptain.movement.behavior.Seek;
+import oldcaptain.pathfinding.TileConnection;
+import oldcaptain.pathfinding.TileNode;
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.badlogic.gdx.ai.pfa.Heuristic;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedAStarPathFinder;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedAStarPathFinder.Metrics;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
+
 import java.util.Iterator;
 
 /**

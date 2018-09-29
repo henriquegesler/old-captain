@@ -1,6 +1,6 @@
-package br.cefetmg.games.pathfinding;
+package oldcaptain.pathfinding;
 
-import br.cefetmg.games.LevelManager;
+import oldcaptain.LevelManager;
 import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedGraph;
 import com.badlogic.gdx.utils.Array;

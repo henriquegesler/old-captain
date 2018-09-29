@@ -1,4 +1,4 @@
-package br.cefetmg.games.graphics;
+package oldcaptain.graphics;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedAStarPathFinder.Metrics;

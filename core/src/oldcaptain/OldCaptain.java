@@ -1,8 +1,8 @@
-package br.cefetmg.games;
+package oldcaptain;
 
-import br.cefetmg.games.graphics.GraphRenderer;
-import br.cefetmg.games.graphics.AgentRenderer;
-import br.cefetmg.games.graphics.MetricsRenderer;
+import oldcaptain.graphics.GraphRenderer;
+import oldcaptain.graphics.AgentRenderer;
+import oldcaptain.graphics.MetricsRenderer;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -21,8 +21,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-public class HunterHunterGame extends ApplicationAdapter {
-
+public class OldCaptain extends ApplicationAdapter {
     private SpriteBatch batch;
     private ShapeRenderer shapeRenderer;
     private TiledMap tiledMap;
@@ -42,9 +41,12 @@ public class HunterHunterGame extends ApplicationAdapter {
     private boolean showingMetrics;
     
     private int heuristic=1;
+    public static int tx, ty;
 
-    public HunterHunterGame() {
-        this.windowTitle = "Hunter x Hunter (%d)";
+    public OldCaptain() {
+        this.windowTitle = "Old Captain(%d)";
+        this.tx=0;
+        this.ty=0;
         showingMetrics = true;
     }
 
@@ -61,12 +63,12 @@ public class HunterHunterGame extends ApplicationAdapter {
         viewport = new ScreenViewport(camera);
 
         // Carrega o mapa
-        tiledMap = LevelManager.LoadLevel("greed-island.tmx");
+        tiledMap = LevelManager.LoadLevel("mapaPadrao1.tmx");
         tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap, batch);
         graphRenderer = new GraphRenderer(batch, shapeRenderer);
         graphRenderer.renderGraphToTexture(LevelManager.graph);
 
-        agentRenderer = new AgentRenderer(batch, camera, new Texture("gon.png"));
+        agentRenderer = new AgentRenderer(batch, camera, new Texture("warriors.png"));
         agent = new Agent(
                 new Vector2(
                         LevelManager.tileWidth / 2,
@@ -80,17 +82,25 @@ public class HunterHunterGame extends ApplicationAdapter {
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
             public boolean keyUp(int keycode) {
+                if (keycode == Input.Keys.ESCAPE) {
+                    Gdx.app.exit();
+                }
                 if (keycode == Input.Keys.LEFT) {
                     camera.translate(-32, 0);
+                    tx-=32;
                 }
                 if (keycode == Input.Keys.RIGHT) {
                     camera.translate(32, 0);
-                }
-                if (keycode == Input.Keys.UP) {
-                    camera.translate(0, -32);
+                    tx+=32;
                 }
                 if (keycode == Input.Keys.DOWN) {
+                    camera.translate(0, -32);
+                    ty-=32;
+                }
+                if (keycode == Input.Keys.UP) {
                     camera.translate(0, 32);
+                    ty+=32;
+
                 }
                 if (keycode == Input.Keys.NUM_9) {
                     tiledMap.getLayers().get(0).setVisible(

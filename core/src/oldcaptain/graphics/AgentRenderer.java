@@ -1,12 +1,13 @@
-package br.cefetmg.games.graphics;
+package oldcaptain.graphics;
 
-import br.cefetmg.games.Agent;
+import oldcaptain.Agent;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import oldcaptain.OldCaptain;
 
 /**
  * Um renderizador de agentes que usa uma sprite animada com 8 direções.
@@ -71,8 +72,8 @@ public class AgentRenderer {
             // vamos desenhar apenas a metade de cima do agente
             Gdx.gl20.glEnable(GL20.GL_SCISSOR_TEST);
             Gdx.gl20.glScissor(
-                    (int) sprite.getX(),
-                    (int) (sprite.getY() + UNDERWATER_HEIGHT_PORTION * currentDepth),
+                    (int) sprite.getX()-OldCaptain.tx,
+                    (int) (sprite.getY() + UNDERWATER_HEIGHT_PORTION * currentDepth)-OldCaptain.ty,
                     FRAME_WIDTH,
                     (int) (FRAME_HEIGHT - UNDERWATER_HEIGHT_PORTION * currentDepth)
             );

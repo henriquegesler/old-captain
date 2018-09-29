@@ -1,4 +1,4 @@
-package br.cefetmg.games.movement;
+package oldcaptain.movement;
 
 import com.badlogic.gdx.math.Vector2;
 
