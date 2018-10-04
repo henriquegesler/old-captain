@@ -1,5 +1,6 @@
 package oldcaptain;
 
+import com.badlogic.gdx.maps.tiled.TiledMap;
 import oldcaptain.graphics.Facing;
 import oldcaptain.movement.Position;
 import oldcaptain.movement.Steering;
@@ -17,15 +18,21 @@ import com.badlogic.gdx.math.Vector2;
 
 import java.util.Iterator;
 
+import static oldcaptain.OldCaptain.counterAgents;
+
 /**
  *
  * @author Flávio Coutinho <fegemo@gmail.com>
  */
 public class Agent {
 
+    public static float MAX_MOVE = 9.0f;
+    public static int MAX_ACTION = 1;
+    public int actualAction;
+    public float actualMove;
     public Position position;
-    private final Algorithm seek;
-    private final IndexedAStarPathFinder pathFinder;
+    protected final Algorithm seek;
+    private IndexedAStarPathFinder pathFinder;
     private final DefaultGraphPath<TileConnection> path;
     private Iterator<TileConnection> pathIterator;
     private final Target steeringTarget;
@@ -33,25 +40,38 @@ public class Agent {
     private static final float MIN_DISTANCE_CONSIDERED_ZERO_SQUARED = (float) Math.pow(2.0f, 2);
     private Facing facing;
     private TileNode nextNode, currentNode;
+    public LevelManager levelManager;
 
     public Color color;
     private boolean shouldMove;
 
     public Agent(Vector2 position, Color color) {
+        counterAgents++;
         this.position = new Position(position);
         this.color = color;
         this.steeringTarget = new Target(position);
         this.seek = new Seek(fullSpeed);
         this.seek.target = steeringTarget;
-        this.pathFinder = new IndexedAStarPathFinder(LevelManager.graph, true);
         this.path = new DefaultGraphPath<>();
         this.pathIterator = this.path.iterator();
-        this.facing = Facing.EAST;
+        this.facing = Facing.SOUTH;
         this.shouldMove = false;
+        this.actualMove = MAX_MOVE;
+        this.actualAction = MAX_ACTION;
+
+    }
+
+    public Position getPosition(){
+        return this.position;
+    }
+
+    public void setLevelManager(LevelManager levelManager){
+        this.levelManager = levelManager;
+        this.pathFinder = new IndexedAStarPathFinder(this.levelManager.graph, true);
     }
 
     /**
-     * Atualiza a posição do agente de acordo com seu objetivo de alto nível
+     * Atualiza a posição do personagem de acordo com seu objetivo de alto nível
      * (pathfinding).
      *
      * @param delta tempo desde a última atualização.
@@ -68,16 +88,25 @@ public class Agent {
                 nextNode = nextConnection.getToNode();
                 steeringTarget.coords = nextNode.getPosition();
 
+
                 // atualiza a velocidade do "seek" de acordo com o terreno (a conexão)
-                this.seek.maxSpeed = fullSpeed - (fullSpeed / 2.0f) * (nextConnection.getCost() - 1) / (LevelManager.maxCost - 1);
+                this.seek.maxSpeed = fullSpeed - (fullSpeed / 2.0f) * (nextConnection.getCost() - 1) / (this.levelManager.maxCost - 1);
             }
         } else if (position.coords.dst2(steeringTarget.coords) < MIN_DISTANCE_CONSIDERED_ZERO_SQUARED * 6) {
             currentNode = nextNode;
         }
 
         // integra
-        if (shouldMove) {
+        if (shouldMove && actualMove > 0) {
+            /**
+             * Mudança será feita aqui
+             * by: Henrique Gesler 10/2018
+             */
             Steering steering = seek.steer(this.position);
+            if(pathIterator.hasNext()){
+                TileConnection nextConnection = pathIterator.next();
+                actualMove -= nextConnection.getCost();
+            }
             position.integrate(steering, delta);
 
             // verifica o vetor velocidade para determinar a orientação
@@ -89,20 +118,34 @@ public class Agent {
 
     /**
      * Este método é chamado quando um clique no mapa é realizado.
-     *
-     * @param x coordenada x do ponteiro do mouse.
+     *  @param x coordenada x do ponteiro do mouse.
      * @param y coordenada y do ponteiro do mouse.
      */
-    public void setGoal(int x, int y, int heuristic) {
-        TileNode startNode = LevelManager.graph
+    public void setGoal(float x, float y, int heuristic) {
+        TileNode startNode = this.levelManager.graph
                 .getNodeAtCoordinates(
                         (int) this.position.coords.x,
                         (int) this.position.coords.y);
-        TileNode targetNode = LevelManager.graph
-                .getNodeAtCoordinates(x, y);
+        TileNode targetNode = this.levelManager.graph
+                .getNodeAtCoordinates((int) x, (int) y);
 
         path.clear();
         pathFinder.metrics.reset();
+        // Finding a new nearest target from target for an obstacle target
+        TileNode target = targetNode;
+        int k=0;
+        while (target.isObstacle()){
+            for(int i=0;i<3;i++){
+                for(int j=0;j<3;j++){
+                    if(target.isObstacle()){
+                        target = this.levelManager.graph.getNodeAtCoordinates(
+                                (int )targetNode.getPosition().x +32-(32*i),(int) targetNode.getPosition().y-(32*(1+k))+(32*(j+k)));
+                    }
+                }
+            }
+            k++;
+        }
+        targetNode = target;
         // AQUI ESTAMOS CHAMANDO O ALGORITMO A* (instância pathFinder) 
         if(heuristic == 1){
             pathFinder.searchConnectionPath(startNode, targetNode,
@@ -130,7 +173,7 @@ public class Agent {
                     float x, y;
                     x = (float) ((float) Math.ceil(n1.getPosition().x/32) - Math.ceil(n.getPosition().x/32));
                     y = (float) ((float) Math.ceil(n1.getPosition().y/32) - Math.ceil(n.getPosition().y/32));
-                    return (float) Math.max(x, y);
+                    return Math.max(x, y);
                 }
             }, path);
         }
@@ -138,7 +181,7 @@ public class Agent {
     }
 
     /**
-     * Retorna em que direção (das 8) o agente está olhando.
+     * Retorna em que direção (das 8) o personagem está olhando.
      *
      * @return a direção de orientação.
      */
@@ -147,7 +190,7 @@ public class Agent {
     }
 
     /**
-     * Retorna se o agente está se movimentando ou se está parado.
+     * Retorna se o personagem está se movimentando ou se está parado.
      *
      * @return
      */
@@ -156,14 +199,12 @@ public class Agent {
     }
 
     /**
-     * Retorna se o agente está em um tile de água.
+     * Retorna se o personagem está em um tile de água.
      *
      * @return
      */
     public boolean isUnderWater() {
-        return currentNode == null || nextNode == null
-                ? false
-                : currentNode.isWater() || nextNode.isWater();
+        return currentNode != null && nextNode != null && (currentNode.isWater() || nextNode.isWater());
     }
 
     private float getPercentageOfNodeTraversalConcluded() {
@@ -197,5 +238,16 @@ public class Agent {
      */
     public Metrics getPathFindingMetrics() {
         return pathFinder.metrics;
+    }
+
+    /**
+     * Acrescentando a função: resetaMove e resetaAction
+     * by: Henrique Gesler 10/2018
+     */
+    public void resetaMove(){
+        actualMove = MAX_MOVE;
+    }
+    public void resetaAction(){
+        actualAction = MAX_ACTION;
     }
 }

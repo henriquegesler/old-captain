@@ -13,7 +13,9 @@ import oldcaptain.OldCaptain;
  * Um renderizador de agentes que usa uma sprite animada com 8 direções.
  *
  * @author fegemo <coutinho@decom.cefetmg.br>
+ *     @edited by henriquegesler <henriquegesler@gmail.com> on 29/09/2018
  */
+
 public class AgentRenderer {
 
     private final SpriteBatch batch;
@@ -72,8 +74,8 @@ public class AgentRenderer {
             // vamos desenhar apenas a metade de cima do agente
             Gdx.gl20.glEnable(GL20.GL_SCISSOR_TEST);
             Gdx.gl20.glScissor(
-                    (int) sprite.getX()-OldCaptain.tx,
-                    (int) (sprite.getY() + UNDERWATER_HEIGHT_PORTION * currentDepth)-OldCaptain.ty,
+                    (int) sprite.getX()- OldCaptain.tx,
+                    (int) (sprite.getY() + UNDERWATER_HEIGHT_PORTION * currentDepth)- OldCaptain.ty,
                     FRAME_WIDTH,
                     (int) (FRAME_HEIGHT - UNDERWATER_HEIGHT_PORTION * currentDepth)
             );
@@ -83,8 +85,8 @@ public class AgentRenderer {
 
             // agora, vamos desenhar só a parte de baixo, com a cor azulada
             Gdx.gl20.glScissor(
-                    (int) sprite.getX(),
-                    (int) sprite.getY(),
+                    (int) sprite.getX()- OldCaptain.tx,
+                    (int) sprite.getY()- OldCaptain.ty,
                     FRAME_WIDTH,
                     (int) (UNDERWATER_HEIGHT_PORTION * currentDepth));
             Gdx.gl.glEnable(GL20.GL_BLEND);

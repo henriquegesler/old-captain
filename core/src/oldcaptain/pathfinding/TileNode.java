@@ -14,7 +14,7 @@ public class TileNode {
     private final int index;
     private boolean isObstacle;
     private boolean isWater;
-    private Vector2 position;
+    public Vector2 position;
     
     public TileNode() {
         index = Incrementer.nextIndex();
@@ -64,7 +64,7 @@ public class TileNode {
     public void setIsWater(boolean water) {
         isWater = water;
     }
-    
+
     private static class Incrementer {
         private static int id = 0;
         public static int nextIndex() {

@@ -7,9 +7,10 @@ import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 
 /**
- *
- * @author Flávio Coutinho <fegemo@gmail.com>
+ * @author fegemo <coutinho@decom.cefetmg.br>
+ *     @edited by henriquegesler <henriquegesler@gmail.com> on 29/09/2018
  */
+
 public class LevelManager {
     public static int tileWidth;
     public static int tileHeight;
@@ -36,5 +37,4 @@ public class LevelManager {
         
         return tiledMap;
     }
-    
 }
