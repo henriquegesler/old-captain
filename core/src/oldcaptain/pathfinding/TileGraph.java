@@ -18,8 +18,8 @@ public class TileGraph implements IndexedGraph<TileNode> {
     }
 
     public TileNode getNodeAtCoordinates(int x, int y) {
-        int tileX = x / LevelManager.tileWidth;
-        int tileY = y / LevelManager.tileHeight;
+        int tileX = (int) Math.floor(x / LevelManager.tileWidth);
+        int tileY = (int) Math.floor(y / LevelManager.tileHeight);
         
         return nodes.get(tileY * LevelManager.horizontalTiles + tileX);
     }

@@ -17,6 +17,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
 
 import java.util.Iterator;
+import static oldcaptain.LevelManager.graph;
 
 import static oldcaptain.OldCaptain.counterAgents;
 
@@ -122,60 +123,68 @@ public class Agent {
      * @param y coordenada y do ponteiro do mouse.
      */
     public void setGoal(float x, float y, int heuristic) {
+        if(x>1792){
+            x=1790;
+        }
         TileNode startNode = this.levelManager.graph
                 .getNodeAtCoordinates(
                         (int) this.position.coords.x,
                         (int) this.position.coords.y);
         TileNode targetNode = this.levelManager.graph
-                .getNodeAtCoordinates((int) x, (int) y);
+                .getNodeAtCoordinates((int) Math.floor(x), (int) Math.floor(y));
 
         path.clear();
         pathFinder.metrics.reset();
         // Finding a new nearest target from target for an obstacle target
-        TileNode target = targetNode;
-        int k=0;
-        while (target.isObstacle()){
-            for(int i=0;i<3;i++){
-                for(int j=0;j<3;j++){
-                    if(target.isObstacle()){
-                        target = this.levelManager.graph.getNodeAtCoordinates(
-                                (int )targetNode.getPosition().x +32-(32*i),(int) targetNode.getPosition().y-(32*(1+k))+(32*(j+k)));
+        try {
+            TileNode target = targetNode;
+            int k = 0;
+            while (target.isObstacle()) {
+                for (int i = 0; i < 3; i++) {
+                    for (int j = 0; j < 3; j++) {
+                        if (target.isObstacle()) {
+                            target = this.levelManager.graph.getNodeAtCoordinates(
+                                    (int) targetNode.getPosition().x + 32 - (32 * i), (int) targetNode.getPosition().y - (32 * (1 + k)) + (32 * (j + k)));
+                        }
                     }
                 }
+                k++;
             }
-            k++;
-        }
-        targetNode = target;
-        // AQUI ESTAMOS CHAMANDO O ALGORITMO A* (instância pathFinder) 
-        if(heuristic == 1){
-            pathFinder.searchConnectionPath(startNode, targetNode,
-                    new Heuristic<TileNode>() {
-                public float estimate(TileNode n, TileNode n1){
-                    return 0;
-                }
-            }, path);
-        }
-        if(heuristic == 2){
-            pathFinder.searchConnectionPath(startNode, targetNode,
-                    new Heuristic<TileNode>() {
-                public float estimate(TileNode n, TileNode n1){
-                    float x, y;
-                    x = n1.getPosition().x - n.getPosition().x;
-                    y = n1.getPosition().y - n.getPosition().y;
-                    return (float) Math.sqrt(Math.pow((double)y,2)+Math.pow((double)x,2))/32;
-                }
-            }, path);
-        }
-        if(heuristic == 3){
-            pathFinder.searchConnectionPath(startNode, targetNode,
-                    new Heuristic<TileNode>() {
-                public float estimate(TileNode n, TileNode n1){
-                    float x, y;
-                    x = (float) ((float) Math.ceil(n1.getPosition().x/32) - Math.ceil(n.getPosition().x/32));
-                    y = (float) ((float) Math.ceil(n1.getPosition().y/32) - Math.ceil(n.getPosition().y/32));
-                    return Math.max(x, y);
-                }
-            }, path);
+            targetNode = target;
+            // AQUI ESTAMOS CHAMANDO O ALGORITMO A* (instância pathFinder) 
+            if (heuristic == 1) {
+                pathFinder.searchConnectionPath(startNode, targetNode,
+                        new Heuristic<TileNode>() {
+                    public float estimate(TileNode n, TileNode n1) {
+                        return 0;
+                    }
+                }, path);
+            }
+            if (heuristic == 2) {
+                pathFinder.searchConnectionPath(startNode, targetNode,
+                        new Heuristic<TileNode>() {
+                    public float estimate(TileNode n, TileNode n1) {
+                        float x, y;
+                        x = n1.getPosition().x - n.getPosition().x;
+                        y = n1.getPosition().y - n.getPosition().y;
+                        return (float) Math.sqrt(Math.pow((double) y, 2) + Math.pow((double) x, 2)) / 32;
+                    }
+                }, path);
+            }
+            if (heuristic == 3) {
+                pathFinder.searchConnectionPath(startNode, targetNode,
+                        new Heuristic<TileNode>() {
+                    public float estimate(TileNode n, TileNode n1) {
+                        float x, y;
+                        x = (float) ((float) Math.ceil(n1.getPosition().x / 32) - Math.ceil(n.getPosition().x / 32));
+                        y = (float) ((float) Math.ceil(n1.getPosition().y / 32) - Math.ceil(n.getPosition().y / 32));
+                        return Math.max(x, y);
+                    }
+                }, path);
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
         pathIterator = path.iterator();
     }

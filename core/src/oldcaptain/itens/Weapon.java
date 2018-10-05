@@ -15,8 +15,8 @@ public class Weapon extends Item {
         this.maxDamage = maxDamage;
         this.meelee = meelee;
         if(!this.meelee){
-            this.ammunition = 20;
-            this.isLoaded=false;
+            this.ammunition = 100;
+            this.isLoaded=true;
         }
     }
 

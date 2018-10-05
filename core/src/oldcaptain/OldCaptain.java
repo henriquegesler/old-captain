@@ -10,6 +10,7 @@ import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Pool;
 import oldcaptain.characters.Captain;
 import oldcaptain.characters.Group;
 import oldcaptain.characters.Soldier;
@@ -30,10 +31,13 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import oldcaptain.itens.Weapon;
 import oldcaptain.movement.behavior.BattalionTatic;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Iterator;
 
 import static com.badlogic.gdx.graphics.Color.BLACK;
+import static com.badlogic.gdx.graphics.Color.WHITE;
+
+import com.badlogic.gdx.utils.Array;
 
 
 public class OldCaptain extends Game {
@@ -51,8 +55,8 @@ public class OldCaptain extends Game {
     static TiledMapRenderer tiledMapRenderer;
     static GraphRenderer graphRenderer;
 
-    static ArrayList<Agent> aliados = new ArrayList<>();
-    static ArrayList<Agent> inimigos = new ArrayList<>();
+    static Array<Agent> aliados = new Array<>();
+    static Array<Agent> inimigos = new Array<>();
     private Agent personagem, inimigo;
     public static AgentRenderer allyRenderer, enemyRenderer;
 
@@ -64,19 +68,19 @@ public class OldCaptain extends Game {
     static int heuristic=2;
     public static int stage=0;
     public static int gold=50, q4Sel=8;
-    static ArrayList<Integer> parametro = new ArrayList<>();
+    static Array<Integer> parametro = new Array<>();
     public static int tx, ty, xx, yy;
 
     static Texture fundo, whiteS, greenS, redS, squareW, squareG;
     static BitmapFont messagesFont;
     static AssetManager assets;
     public static Group group1, group2, activeGroup, enemy1, enemy2, enemy3;
-    static ArrayList<Captain> avaibleCaptains = new ArrayList<>();
-    static ArrayList<Weapon> weapons = new ArrayList<>();
-    static ArrayList<BattalionTatic> tatics = new ArrayList<>();
-    static ArrayList<Group> team1, team2;
+    static Array<Captain> avaibleCaptains = new Array<>();
+    static Array<Weapon> weapons = new Array<>();
+    static Array<BattalionTatic> tatics = new Array<>();
+    static Array<Group> team1, team2;
     static boolean p1 = false, p2 =false, p3 =false, p4=false, turno=true;
-    public static int counterAgents=0;
+    public static int counterAgents=0, fallenE=0, fallenA=0;
 
 
     public OldCaptain() {
@@ -94,8 +98,8 @@ public class OldCaptain extends Game {
         enemy1 = new Group();
         enemy2 = new Group();
         enemy3 = new Group();
-        team1 = new ArrayList<>();
-        team2 = new ArrayList<>();
+        team1 = new Array<>();
+        team2 = new Array<>();
 
         mouseover = Gdx.audio.newMusic(Gdx.files.internal("sounds/mouseover.mp3"));
         mouseclick = Gdx.audio.newSound(Gdx.files.internal("sounds/mouseclick.mp3"));
@@ -157,6 +161,9 @@ public class OldCaptain extends Game {
         }
         else if(stage == 2){
             telaBatalha();
+        }
+        else if(stage==3){
+            telaFinal();
         }
         Gdx.graphics.setTitle(
                 String.format(windowTitle+" X:"+Gdx.input.getX()+" Y:"+Gdx.input.getY(),
@@ -231,10 +238,10 @@ public class OldCaptain extends Game {
         tiledMapRenderer.render();
         //Cria o render de cada personagem e adiciona na lista
         if(activeGroup != null){
-            for (int i = 0; i < activeGroup.soldiers.size(); i++) {
+            for (int i = 0; i < activeGroup.soldiers.size; i++) {
                 activeGroup.soldiers.get(i).update(Gdx.graphics.getDeltaTime());
             }
-            for(int i = 0; i< activeGroup.renders.size(); i++){
+            for(int i = 0; i< activeGroup.renders.size; i++){
                 activeGroup.renders.get(i).render(activeGroup.soldiers.get(i));
             }
             activeGroup.activeTatic.takeAction(activeGroup);
@@ -326,9 +333,9 @@ public class OldCaptain extends Game {
         if (debugMode) {
             graphRenderer.renderOffScreenedGraph();
         }
-        batch.end();
         group1 = resetaTurno(group1);
         group2 = resetaTurno(group2);
+        batch.end();
     }
 
     private void telaBatalha() {
@@ -342,19 +349,22 @@ public class OldCaptain extends Game {
         //Dá update e renderiza
         //Ativa a tática do grupo, capitão encontra seu alvo
         //Verifica se há inimigos no alcance da batalha
-        for (Iterator<Group> iterator = team1.iterator(); iterator.hasNext(); ) {
-            Group aTeam1 = iterator.next();
+        for (int i=0;i<team1.size;i++){
             //A descrição será: Descrição e embaixo o código que faz a descrição
-            //Capitão escolha um alvo e vai em direção a ele
-            aTeam1.captain.setLevelManager(stage2Level);
-            aTeam1.captain.escolheAlvo(team2);
-            //O grupo segue o capitão
-            aTeam1.activeTatic.takeAction(aTeam1);
-            for (int j = 0; j < aTeam1.soldiers.size(); j++) {
+            for(int j=0;j<team1.get(i).soldiers.size;j++){
+                //Cada soldado escolha um alvo e vai em direção a ele
+                if(team2.size>0){
+                    team1.get(i).soldiers.get(j).enemyDead(team2);
+                    team1.get(i).soldiers.get(j).escolheAlvo(team2);
+                }
+                if(team1.get(i).soldiers.size>0){
+                    team1.get(i).activeTatic.takeAction(team1.get(i));
+                }
+
                 //Update em soldado do grupo
-                aTeam1.soldiers.get(j).update(Gdx.graphics.getDeltaTime());
+                team1.get(i).soldiers.get(j).update(Gdx.graphics.getDeltaTime());
                 //Render em soldado do grupo
-                aTeam1.renders.get(j).render(aTeam1.soldiers.get(j));
+                team1.get(i).renders.get(j).render(team1.get(i).soldiers.get(j));
                 /**Realiza duas verificações:
                  * 1- O soldado possuí ações livres? (soldados possuem 1 ação, enquanto capitões possuem 2)
                  * 2- O soldado possui algum inimigo em sua área de ameaça (range de sua arma equipada, mudança de arma
@@ -362,100 +372,168 @@ public class OldCaptain extends Game {
                  * Se a resposta para as duas for sim, criamos um objeto inimigo que recebe o inimigo no alcance
                  * Explicações continuam na mesma formula de antes.
                  */
-                if ((aTeam1.soldiers.get(j).actualAction > 0) && (aTeam1.soldiers.get(j).enemyInRange(team2) != null)) {
-                    Soldier enemy = aTeam1.soldiers.get(j).enemyInRange(team2);
+                if((team1.get(i).soldiers.get(j).actualAction > 0) && (team1.get(i).soldiers.get(j).enemyInRange(team2))) {
+                    team1.get(i).soldiers.get(j).enemyInRange(team2);
                     /**
                      * Realiza uma busca pelo array de grupos inimigos.
                      * O objetivo da busca é achar um inimigo que possua o id igual o id do inimigo no alcance
                      */
-                    for (int a = 0; a < team2.size(); a++) {
-                        for (int b = 0; b < team2.get(a).soldiers.size(); b++) {
-                            if (team2.get(a).soldiers.get(b).id == enemy.id) {
-                                /** Realizamos o ataque, passando o inimigo como parametro. Do objeto retornado pelo ataque,
-                                 * pegamos seu HP atual, pois o objeto retornado teve seu HP atual modificado pelo ataque
-                                 * (no caso de ter acertado o ataque). Pegamos o inimigo e igualamos seu HP atual ao HP
-                                 * atual do objeto retornado
-                                 */
-                                team2.get(a).soldiers.get(b).partialHP = aTeam1.soldiers.get(j).attack(enemy).partialHP;
-                                // Verifica se o inimigo morreu
-                                if (team2.get(a).soldiers.get(b).isDead()) {
-                                    //Caso tenha morrido, concedemos experiencia ao soldado que o matou
-                                    //Removemos ele da lista de inimigos ativos
-                                    aTeam1.soldiers.get(j).gainExperience(team2.get(a).soldiers.get(b).directExperience());
-                                    team2.remove(team2.get(a).soldiers.get(b));
+                    try {
+                        for (int a = 0; a < team2.size; a++) {
+                            for (int b = 0; b < team2.get(a).soldiers.size; b++) {
+                                if(team1.get(i).soldiers.get(j).engagedEnemy != null) {
+                                    if (team2.get(a).soldiers.get(b).id == team1.get(i).soldiers.get(j).engagedEnemy.id) {
+                                        /** Realizamos o ataque, passando o inimigo como parametro. Do objeto retornado pelo ataque,
+                                         * pegamos seu HP atual, pois o objeto retornado teve seu HP atual modificado pelo ataque
+                                         * (no caso de ter acertado o ataque). Pegamos o inimigo e igualamos seu HP atual ao HP
+                                         * atual do objeto retornado
+                                         */
+                                        //Como um ataque foi realizado, retiramos 1 ponto de ação do personagem atual
+                                        team1.get(i).soldiers.get(j).actualAction -= 1;
+                                        team2.get(a).soldiers.get(b).partialHP = team1.get(i).soldiers.get(j).attack();
+                                        team2.get(a).soldiers.get(b).isDead();
+                                        System.out.println(team1.get(i).soldiers.get(j).id + " ESTÁ ATACANDO " + team2.get(a).soldiers.get(b).id);
+                                        // Verifica se o inimigo morreu
+                                        if (!team2.get(a).soldiers.get(b).active) {
+                                            //Caso tenha morrido, concedemos experiencia ao soldado que o matou
+                                            team1.get(i).soldiers.get(j).gainExperience(team2.get(a).soldiers.get(b).directExperience());
+                                            System.out.println(team1.get(i).soldiers.get(j).id + " DERROTOU " + team1.get(i).soldiers.get(j).engagedEnemy.id);
+                                            team1.get(i).soldiers.get(j).engagedEnemy = null;
+                                            //Removemos ele da lista de inimigos ativos
+                                            //team2.get(a).soldiers.removeValue(team2.get(a).soldiers.get(b), true);
+                                            team2.get(a).soldiers.removeIndex(b);
+                                            fallenE++;
+                                            if (team2.get(a).soldiers.size == 0) {
+                                                //team2.removeValue(team2.get(a), true);
+                                                team2.removeIndex(a);
+                                                System.out.println("REMOVEMOS O GRUPO " + a + " DO TIME 2\nSobram: " + team1.size);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
+                    }catch (java.lang.NullPointerException ex){
+                        ex.printStackTrace();
+                    }catch (java.lang.IndexOutOfBoundsException ex1){
+                        ex1.printStackTrace();
                     }
-                    //Como um ataque foi realizado, retiramos 1 ponto de ação do personagem atual
-                    aTeam1.soldiers.get(j).actualAction -= 1;
                 }
-
             }
         }
 
-        //for (int i=0;i<team1.size();i++){
-
-        //}
         //Ajustando os grupos inimigos
         //Dá update e renderiza
         //Ativa a tática do grupo, capitão encontra seu alvo
         //Verifica se há inimigos no alcance da batalha
-        for (int i=0;i<team2.size();i++){
-            //A descrição será: Descrição e embaixo o código que faz a descrição
-            for(int j=0;j<team2.get(i).soldiers.size();j++){
-                //Cada soldado escolha um alvo e vai em direção a ele
-                team2.get(i).soldiers.get(j).escolheAlvo(team1);
-                //Update em soldado do grupo
-                team2.get(i).soldiers.get(j).update(Gdx.graphics.getDeltaTime());
-                //Render em soldado do grupo
-                team2.get(i).renders.get(j).render(team2.get(i).soldiers.get(j));
-                /**Realiza duas verificações:
-                 * 1- O soldado possuí ações livres? (soldados possuem 1 ação, enquanto capitões possuem 2)
-                 * 2- O soldado possui algum inimigo em sua área de ameaça (range de sua arma equipada, mudança de arma
-                 * ainda a ser vista e revista)
-                 * Se a resposta para as duas for sim, criamos um objeto inimigo que recebe o inimigo no alcance
-                 * Explicações continuam na mesma formula de antes.
-                 */
-                if((team2.get(i).soldiers.get(j).actualAction > 0) && (team2.get(i).soldiers.get(j).enemyInRange(team1) != null)){
-                    Soldier enemy = team2.get(i).soldiers.get(j).enemyInRange(team1);
-                    /**
-                     * Realiza uma busca pelo array de grupos inimigos.
-                     * O objetivo da busca é achar um inimigo que possua o id igual o id do inimigo no alcance
+        for (int i=0;i<team2.size;i++){
+                //A descrição será: Descrição e embaixo o código que faz a descrição
+                for(int j=0;j<team2.get(i).soldiers.size;j++){
+                    //Cada soldado escolha um alvo e vai em direção a ele
+                    if(team1.size>0){
+                        team2.get(i).soldiers.get(j).enemyDead(team1);
+                        team2.get(i).soldiers.get(j).escolheAlvo(team1);
+                    }
+                    else{
+                        batch.begin();
+                        if (assets.update()) {
+                            messagesFont = assets.get("fonts/sawasdee-150.fnt");
+                        }
+                        drawCenterAlignedText("Vitoria!!",1.0f,400);
+                        batch.end();
+                    }
+                    //Update em soldado do grupo
+                    team2.get(i).soldiers.get(j).update(Gdx.graphics.getDeltaTime());
+                    //Render em soldado do grupo
+                    team2.get(i).renders.get(j).render(team2.get(i).soldiers.get(j));
+                    /**Realiza duas verificações:
+                     * 1- O soldado possuí ações livres? (soldados possuem 1 ação, enquanto capitões possuem 2)
+                     * 2- O soldado possui algum inimigo em sua área de ameaça (range de sua arma equipada, mudança de arma
+                     * ainda a ser vista e revista)
+                     * Se a resposta para as duas for sim, criamos um objeto inimigo que recebe o inimigo no alcance
+                     * Explicações continuam na mesma formula de antes.
                      */
-                    for(int a=0;a<team1.size();a++){
-                        for(int b=0;b<team1.get(a).soldiers.size();b++){
-                            if(team1.get(a).soldiers.get(b).id == enemy.id){
-                                /** Realizamos o ataque, passando o inimigo como parametro. Do objeto retornado pelo ataque,
-                                 * pegamos seu HP atual, pois o objeto retornado teve seu HP atual modificado pelo ataque
-                                 * (no caso de ter acertado o ataque). Pegamos o inimigo e igualamos seu HP atual ao HP
-                                 * atual do objeto retornado
-                                 */
-                                team1.get(a).soldiers.get(b).partialHP = team2.get(i).soldiers.get(j).attack(enemy).partialHP;
-                                // Verifica se o inimigo morreu
-                                if(team1.get(a).soldiers.get(b).isDead()){
-                                    //Caso tenha morrido, concedemos experiencia ao soldado que o matou
-                                    //Removemos ele da lista de inimigos ativos
-                                    team2.get(i).soldiers.get(j).gainExperience(team2.get(a).soldiers.get(b).directExperience());
-                                    team1.remove(team1.get(a).soldiers.get(b).id);
+                    if((team2.get(i).soldiers.get(j).actualAction > 0) && (team2.get(i).soldiers.get(j).enemyInRange(team1))) {
+                        team2.get(i).soldiers.get(j).enemyInRange(team1);
+                        /**
+                         * Realiza uma busca pelo array de grupos inimigos.
+                         * O objetivo da busca é achar um inimigo que possua o id igual o id do inimigo no alcance
+                         */
+                        try {
+                            for (int a = 0; a < team1.size; a++) {
+                                for (int b = 0; b < team1.get(a).soldiers.size; b++) {
+                                    if(team2.get(i).soldiers.get(j).engagedEnemy != null) {
+                                        if (team1.get(a).soldiers.get(b).id == team2.get(i).soldiers.get(j).engagedEnemy.id) {
+                                            /** Realizamos o ataque, passando o inimigo como parametro. Do objeto retornado pelo ataque,
+                                             * pegamos seu HP atual, pois o objeto retornado teve seu HP atual modificado pelo ataque
+                                             * (no caso de ter acertado o ataque). Pegamos o inimigo e igualamos seu HP atual ao HP
+                                             * atual do objeto retornado
+                                             */
+                                            //Como um ataque foi realizado, retiramos 1 ponto de ação do personagem atual
+                                            team2.get(i).soldiers.get(j).actualAction -= 1;
+                                            team1.get(a).soldiers.get(b).partialHP = team2.get(i).soldiers.get(j).attack();
+                                            team1.get(a).soldiers.get(b).isDead();
+                                            System.out.println(team2.get(i).soldiers.get(j).id + " ESTÁ ATACANDO " + team1.get(a).soldiers.get(b).id);
+                                            // Verifica se o inimigo morreu
+                                            if (!team1.get(a).soldiers.get(b).active) {
+                                                //Caso tenha morrido, concedemos experiencia ao soldado que o matou
+                                                team2.get(i).soldiers.get(j).gainExperience(team1.get(a).soldiers.get(b).directExperience());
+                                                System.out.println(team2.get(i).soldiers.get(j).id + " DERROTOU " + team2.get(i).soldiers.get(j).engagedEnemy.id);
+                                                team2.get(i).soldiers.get(j).engagedEnemy = null;
+                                                //Removemos ele da lista de inimigos ativos
+                                                team1.get(a).soldiers.removeIndex(b);
+                                                fallenA++;
+                                                if (team1.get(a).soldiers.size == 0) {
+                                                    team1.removeIndex(a);
+                                                    System.out.println("REMOVEMOS O GRUPO " + a + " DO TIME 1\nSobram: " + team1.size);
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
+                        }catch (java.lang.NullPointerException ex){
+                            ex.printStackTrace();
+                        }catch (java.lang.IndexOutOfBoundsException ex1){
+                            ex1.printStackTrace();
                         }
                     }
-                    //Como um ataque foi realizado, retiramos 1 ponto de ação do personagem atual
-                    team2.get(i).soldiers.get(j).actualAction -= 1;
                 }
-
-            }
         }
         if(turno){
             team1 = resetaTurnoTime(team1);
             team2 = resetaTurnoTime(team2);
         }
+        if((fallenE+fallenA)>20){
+            telaFinal();
+            stage = 3;
+        }
+
         batch.begin();
         if (debugMode) {
             graphRenderer.renderOffScreenedGraph();
         }
+        batch.end();
+    }
+
+    public void telaFinal(){
+        batch.begin();
+        batch.draw(fundo, 0,0, 1856, 896);
+        if (assets.update()) {
+            messagesFont = assets.get("fonts/sawasdee-150.fnt");
+        }
+        if(fallenE>10){
+            drawCenterAlignedText("Vitória!",1.0f,600);
+        }
+        else if(fallenA>10){
+            drawCenterAlignedText("derrota!!",1.0f,600);
+        }
+        if (assets.update()) {
+            messagesFont = assets.get("fonts/sawasdee-100.fnt");
+        }
+        drawCenterAlignedText("derrotamos: "+fallenE,1.0f,440);
+        drawCenterAlignedText("perdemos: "+fallenA,1.0f,320);
+        drawCenterAlignedText("Aperte ENTER para terminar.",1.0f,200);
         batch.end();
     }
 
@@ -468,7 +546,7 @@ public class OldCaptain extends Game {
                     + "que 1.");
         }
         final float horizontalPadding = 0.05f;
-        messagesFont.setColor(BLACK);
+        messagesFont.setColor(WHITE);
         messagesFont.getData().setScale(scale);
 
         final float worldWidth = viewport.getWorldWidth();
@@ -566,18 +644,28 @@ public class OldCaptain extends Game {
     }
 
     public static Group resetaTurno(Group team){
-        for (int i=0;i<team.soldiers.size();i++){
+        for (int i=0;i<team.soldiers.size;i++) {
             team.soldiers.get(i).resetaMove();
             team.soldiers.get(i).resetaAction();
+            try {
+                team.soldiers.get(i).reload();
+            }catch (java.lang.IndexOutOfBoundsException ex){
+                ex.printStackTrace();
+            }
         }
         return team;
     }
 
-    public static ArrayList<Group> resetaTurnoTime(ArrayList<Group> team){
-        for (int i=0;i<team.size();i++){
-            for(int j=0;j<team.get(i).soldiers.size();j++){
+    public static Array<Group> resetaTurnoTime(Array<Group> team){
+        for (int i=0;i<team.size;i++){
+            for(int j=0;j<team.get(i).soldiers.size;j++){
                 team.get(i).soldiers.get(j).resetaMove();
                 team.get(i).soldiers.get(j).resetaAction();
+                try {
+                    team.get(i).soldiers.get(i).reload();
+                }catch (java.lang.IndexOutOfBoundsException ex){
+                    ex.printStackTrace();
+                }
             }
         }
         return team;

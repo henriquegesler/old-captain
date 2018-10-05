@@ -14,8 +14,8 @@ public class Captain extends Soldier {
     public static int MAX_ACTION=2;
     public String name;
 
-    public Captain(String name, Weapon weapon, Vector2 position, Color color) {
-        super(weapon, position, color);
+    public Captain(String name, Weapon meelee, Weapon ranged, Vector2 position, Color color) {
+        super(meelee, ranged, position, color);
         this.name = name;
         this.totalHP = random(30,46);
         this.chanceToDie = random(.5f,1.01f);
@@ -35,20 +35,27 @@ public class Captain extends Soldier {
         this.partialHP = this.totalHP;
     }
 
-    public boolean isDead(){
-        float chance=random(10000);
-        if(chance<=6750){
-            chance*=this.chanceToDie;
-            if(chance <= 8200){
-                return true;
+    public void isDead(){
+        if(partialHP <= 0){
+            active=false;
+            float chance=random(10000);
+            if(chance<=6750){
+                chance*=this.chanceToDie;
+                if(chance <= 8200){
+                    alive = false;
+                }
+                else{
+                    alive = true;
+                }
             }
             else{
-                return false;
+                this.chanceToDie += random(0.07f);
+                alive = true;
             }
         }
         else{
-            this.chanceToDie += random(0.07f);
-            return false;
+            active=true;
+            alive = true;
         }
     }
 

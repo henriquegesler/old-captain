@@ -15,6 +15,7 @@ import com.badlogic.gdx.utils.Array;
 public class GraphGenerator {
 
     public static TileGraph generateGraph(TiledMap map) {
+        TileNode.resetIncrementer();
         Array<TileNode> nodes = new Array<>();
         TiledMapTileLayer floor = (TiledMapTileLayer) map.getLayers().get(0);
 //        TiledMapTileLayer objects = (TiledMapTileLayer) map.getLayers().get(1);

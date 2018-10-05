@@ -12,6 +12,7 @@ import oldcaptain.movement.Position;
 import java.util.ArrayList;
 
 import static com.badlogic.gdx.math.MathUtils.random;
+import com.badlogic.gdx.utils.Array;
 import static oldcaptain.OldCaptain.*;
 
 public class Soldier extends Agent {
@@ -20,8 +21,10 @@ public class Soldier extends Agent {
     public Weapon activeW, meelee, ranged;
     public ArrayList<Item> itens;
     public AgentRenderer soldierRenderer;
+    public Soldier engagedEnemy;
+    public boolean alive, active, inRange;
 
-    public Soldier(Weapon weapon, Vector2 position, Color color) {
+    public Soldier(Weapon meelee, Weapon ranged, Vector2 position, Color color) {
         super(position, color);
         soldierRenderer = new AgentRenderer(batch, camera, new Texture("warriors.png"));
         this.id = counterAgents;
@@ -35,15 +38,18 @@ public class Soldier extends Agent {
         this.itens = new ArrayList<>();
         this.xpRadius = 1.5f;
         this.armorClass = 10;
-        if(weapon.meelee){
-            meelee = weapon;
-            ranged = null;
+        this.meelee = meelee;
+        this.ranged = ranged;
+        if(ranged.id==4){
+            activeW = ranged;
         }
-        else{
-            meelee = null;
-            ranged = weapon;
+        else {
+            activeW = meelee;
         }
-        activeW = weapon;
+        engagedEnemy = null;
+        alive = true;
+        active = true;
+        inRange = false;
     }
 
     public void atualizaAC(int ca){
@@ -99,25 +105,27 @@ public class Soldier extends Agent {
         return xp;
     }
 
-    public boolean isDead(){
+    public void isDead(){
         if(partialHP <= 0){
+            active=false;
             float chance=random(10000);
             if(chance<=7000){
                 chance*=this.chanceToDie;
                 if(chance <= 8500){
-                    return true;
+                    alive = false;
                 }
                 else{
-                    return false;
+                    alive = true;
                 }
             }
             else{
                 this.chanceToDie += random(0.05f);
-                return false;
+                alive = true;
             }
         }
         else{
-            return false;
+            active=true;
+            alive = true;
         }
     }
 
@@ -127,12 +135,12 @@ public class Soldier extends Agent {
     }
 
     public void reload(){
-        if(this.ranged.ammunition > 0){
-            this.ranged.ammunition--;
-            this.ranged.isLoaded=true;
+        if(this.activeW.ammunition > 0 && !activeW.meelee && !activeW.isLoaded){
+            this.activeW.ammunition--;
+            this.activeW.isLoaded=true;
         }
         else{
-            changeWeapon();
+            //changeWeapon();
         }
     }
 
@@ -160,42 +168,83 @@ public class Soldier extends Agent {
     }
 
 
-    public void escolheAlvo(ArrayList<Group> enemies){
+    public void escolheAlvo(Array<Group> enemies){
         Soldier enemy;
-        float dist = position.coords.dst(enemies.get(0).soldiers.get(0).position.coords);
-        enemy = enemies.get(0).soldiers.get(0);
-        for(int i=0;i<enemies.size();i++){
-            for(int j=0;j<enemies.get(i).soldiers.size();j++){
-                if (position.coords.dst(enemies.get(i).soldiers.get(j).position.coords) <= dist){
-                    enemy = enemies.get(i).soldiers.get(j);
+        if(!inRange) {
+            if (this.engagedEnemy == null) {
+                float dist = position.coords.dst(enemies.get(0).soldiers.get(0).position.coords);
+                enemy = enemies.get(0).soldiers.get(0);
+                for (int i = 0; i < enemies.size; i++) {
+                    for (int j = 0; j < enemies.get(i).soldiers.size; j++) {
+                        if (position.coords.dst(enemies.get(i).soldiers.get(j).position.coords) <= dist) {
+                            enemy = enemies.get(i).soldiers.get(j);
+                        }
+                    }
                 }
+                this.engagedEnemy = enemy;
             }
+            setGoal(this.engagedEnemy.position.coords.x, this.engagedEnemy.position.coords.y,2);
         }
-        setGoal(enemy.position.coords.x,enemy.position.coords.y,2);
+        else{
+            setGoal(this.position.coords.x,this.position.coords.y,2);
+        }
     }
 
-    public Soldier enemyInRange(ArrayList<Group> enemies){
+    public boolean enemyInRange(Array<Group> enemies){
         Position localization;
-        for(int i=0;i<enemies.size();i++){
-            for(int j=0;j<enemies.get(i).soldiers.size();j++){
+        for(int i=0;i<enemies.size;i++){
+            for(int j=0;j<enemies.get(i).soldiers.size;j++){
                 localization = enemies.get(i).soldiers.get(j).getPosition();
                 if(localization.coords.dst(position.coords) <= activeW.range){
-                    return enemies.get(i).soldiers.get(j);
+                    engagedEnemy = enemies.get(i).soldiers.get(j);
+                    setGoal(position.coords.x,position.coords.y,2);
+                    inRange = true;
+                    return true;
                 }
             }
         }
-        return null;
+        inRange = false;
+        return false;
     }
 
-    public Soldier attack(Soldier target){
+    public float attack(){
         float attack = random(100.00f);
         attack += activeW.abilityModifier * proficiency;
         attack /= 5;
-        if(attack>target.armorClass){
+        if(attack>engagedEnemy.armorClass){
             float dmg = random(activeW.minDamage,activeW.maxDamage);
-            target.partialHP -= dmg+((activeW.abilityModifier * proficiency)/2);
+            engagedEnemy.partialHP -= dmg+((activeW.abilityModifier * proficiency)/2);
         }
         this.activeW.isLoaded=false;
-        return target;
+        return engagedEnemy.partialHP;
+    }
+
+    public boolean enemyDead(Array<Group> enemies){
+        if(engagedEnemy != null) {
+            for (int i = 0; i < enemies.size; i++) {
+                for (int j = 0; j < enemies.get(i).soldiers.size; j++) {
+                    if (enemies.get(i).soldiers.get(j).id == engagedEnemy.id) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    public void analiseGoal(float x, float y){
+        if(x < this.position.coords.x){
+            x+=32;
+        }
+        else {
+            x-=32;
+        }
+        if(y < this.position.coords.y){
+            y+=32;
+        }
+        else {
+            y-=32;
+        }
+        setGoal(x,y,2);
     }
 }

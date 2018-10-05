@@ -10,8 +10,8 @@ import static oldcaptain.OldCaptain.batch;
 import static oldcaptain.OldCaptain.camera;
 
 public class Enemy extends Soldier {
-    public Enemy(Weapon weapon, Vector2 position, Color color) {
-        super(weapon, position, color);
+    public Enemy(Weapon meelee,Weapon ranged, Vector2 position, Color color) {
+        super(meelee,ranged, position, color);
         this.soldierRenderer = new AgentRenderer(batch, camera, new Texture("warriors-enemy.png"));
     }
 }

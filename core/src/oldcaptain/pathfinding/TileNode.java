@@ -65,6 +65,10 @@ public class TileNode {
         isWater = water;
     }
 
+    public static void resetIncrementer() {
+        Incrementer.id = 0;
+    }
+    
     private static class Incrementer {
         private static int id = 0;
         public static int nextIndex() {
