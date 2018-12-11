@@ -20,7 +20,7 @@ public class MyInputAdapter extends InputAdapter {
     public boolean keyUp(int keycode) {
         if(stage == 2){
             if(keycode == Input.Keys.SPACE){
-                turno = !turno;
+
             }
             if (keycode == Input.Keys.LEFT) {
                 camera.translate(-32, 0);
@@ -87,11 +87,14 @@ public class MyInputAdapter extends InputAdapter {
                                 Color.FIREBRICK
                         );
                         soldier.setLevelManager(stage1Level);
+                        soldier.engagedEnemy = group1.captain.engagedEnemy;
                         group1.soldiers.add(soldier);
                         group1.renders.add(group1.soldiers.get(i).soldierRenderer);
                     }
                     group1.soldiers.add(group1.captain);
                     group1.renders.add(group1.captain.soldierRenderer);
+                    group1.captain.setMyGroup(group1);
+                    group1.selectTatic(0);
 
                     for (int i=0;i<8;i++){
                         Soldier soldier = new Soldier(weapons.get(random(0,2)),weapons.get(random(3,4)) ,new Vector2(
@@ -101,11 +104,14 @@ public class MyInputAdapter extends InputAdapter {
                         );
 
                         soldier.setLevelManager(stage1Level);
+                        soldier.engagedEnemy = group2.captain.engagedEnemy;
                         group2.soldiers.add(soldier);
                         group2.renders.add(group2.soldiers.get(i).soldierRenderer);
                     }
                     group2.soldiers.add(group2.captain);
                     group2.renders.add(group2.captain.soldierRenderer);
+                    group2.captain.setMyGroup(group2);
+                    group2.selectTatic(0);
                     activeGroup = null;
                     //Efeito Sonoro Do click
                     mouseclick.play(1.0f);
@@ -166,14 +172,15 @@ public class MyInputAdapter extends InputAdapter {
                     }
                     group2.captain.setLevelManager(stage2Level);
                     group2.captain.setInitialPosition2();
-                    group2.captain.setGoal(128+(stage2Level.tileWidth / 2),
+                    group2.captain.setGoal((float) 128+(stage2Level.tileWidth / 2),
                             ((float) stage2Level.totalPixelHeight/2)+64,2)
                     ;
-                    group1.captain.setGoal((stage2Level.tileWidth / 2),
+                    group1.captain.setGoal((float) (stage2Level.tileWidth / 2),
                             ((float) stage2Level.totalPixelHeight/2)+64,2)
                     ;
                     team1.add(group1);
                     team1.add(group2);
+
                     stage=2;
                 }
                 //Grupo 1
@@ -231,7 +238,7 @@ public class MyInputAdapter extends InputAdapter {
                         for(int i=2;i<12;i++){
                             parametro.set(i,0);
                         }
-                        activeGroup.selectTatic(1);
+                        activeGroup.selectTatic(0);
                         parametro.set(4,2);
                     }
                     else if(y>346 && y<388){
@@ -239,7 +246,7 @@ public class MyInputAdapter extends InputAdapter {
                         for(int i=2;i<12;i++){
                             parametro.set(i,0);
                         }
-                        activeGroup.selectTatic(1);
+                        activeGroup.selectTatic(3);
                         parametro.set(5,2);
                     }
                     else if(y>391 && y<436){
@@ -247,7 +254,7 @@ public class MyInputAdapter extends InputAdapter {
                         for(int i=2;i<12;i++){
                             parametro.set(i,0);
                         }
-                        activeGroup.selectTatic(1);
+                        activeGroup.selectTatic(0);
                         parametro.set(6,2);
                     }
                 }
@@ -274,7 +281,7 @@ public class MyInputAdapter extends InputAdapter {
                         for(int i=2;i<12;i++){
                             parametro.set(i,0);
                         }
-                        activeGroup.selectTatic(1);
+                        activeGroup.selectTatic(0);
                         parametro.set(9,2);
                     }
                     else if(y>346 && y<388){
@@ -282,7 +289,7 @@ public class MyInputAdapter extends InputAdapter {
                         for(int i=2;i<12;i++){
                             parametro.set(i,0);
                         }
-                        activeGroup.selectTatic(1);
+                        activeGroup.selectTatic(3);
                         parametro.set(10,2);
                     }
                     else if(y>391 && y<436){
@@ -290,7 +297,7 @@ public class MyInputAdapter extends InputAdapter {
                         for(int i=2;i<12;i++){
                             parametro.set(i,0);
                         }
-                        activeGroup.selectTatic(1);
+                        activeGroup.selectTatic(0);
                         parametro.set(11,2);
                     }
                 }
@@ -309,8 +316,8 @@ public class MyInputAdapter extends InputAdapter {
                 //yy = (int) clique.y;
             }
             else if(stage == 2) {
-                group1.captain.setGoal((int) clique.x, (int) clique.y, heuristic);
-                group2.captain.setGoal((int) clique.x, (int) clique.y, heuristic);
+                //group1.captain.setGoal((int) clique.x, (int) clique.y, heuristic);
+                //group2.captain.setGoal((int) clique.x, (int) clique.y, heuristic);
             }
         }
         return true;
@@ -388,19 +395,24 @@ public class MyInputAdapter extends InputAdapter {
     }
 
     public void creatorOfCaptains(){
-        Captain c1 = new Captain("Messias, The Savior",weapons.get(1),weapons.get(random(3,4)),new Vector2(
+        Enemy firstE = new Enemy(weapons.get(random(0,2)),weapons.get(3/*random(3,4)*/),
+                new Vector2(220, 175),
+                Color.FIREBRICK);
+        Captain c1 = new Captain("Messias, The Savior",weapons.get(1),weapons.get(3),new Vector2(
                 (stage1Level.tileWidth / 2)+16,
                 stage1Level.totalPixelHeight-96),
                 Color.FIREBRICK
         );
         c1.setLevelManager(stage1Level);
+        c1.engagedEnemy = firstE;
         avaibleCaptains.add(c1);
-        Captain c2 = new Captain("Ginger, The Stable Boy",weapons.get(2),weapons.get(random(3,4)),new Vector2(
+        Captain c2 = new Captain("Ginger, The Stable Boy",weapons.get(2),weapons.get(3),new Vector2(
                 (stage1Level.tileWidth / 2)+16,
                 stage1Level.totalPixelHeight-96),
                 Color.FIREBRICK
         );
         c2.setLevelManager(stage1Level);
+        c2.engagedEnemy = firstE;
         avaibleCaptains.add(c2);
         Captain c3 = new Captain("Daciolo, Cabo",weapons.get(random(0,2)),weapons.get(3),new Vector2(
                 (stage1Level.tileWidth / 2)+16,
@@ -408,6 +420,7 @@ public class MyInputAdapter extends InputAdapter {
                 Color.FIREBRICK
         );
         c3.setLevelManager(stage1Level);
+        c3.engagedEnemy = firstE;
         avaibleCaptains.add(c3);
         Captain c4 = new Captain("Ciro, O Cangaceiro",weapons.get(random(0,2)),weapons.get(4),new Vector2(
                 (stage1Level.tileWidth / 2)+16,
@@ -415,6 +428,7 @@ public class MyInputAdapter extends InputAdapter {
                 Color.FIREBRICK
         );
         c4.setLevelManager(stage1Level);
+        c4.engagedEnemy = firstE;
         avaibleCaptains.add(c4);
     }
 

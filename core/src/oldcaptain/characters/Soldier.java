@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import oldcaptain.Agent;
+import oldcaptain.LevelManager;
 import oldcaptain.graphics.AgentRenderer;
 import oldcaptain.itens.Item;
 import oldcaptain.itens.Weapon;
@@ -16,18 +17,18 @@ import com.badlogic.gdx.utils.Array;
 import static oldcaptain.OldCaptain.*;
 
 public class Soldier extends Agent {
-    public int id, level, armorClass;
+    public int level, armorClass;
     public float totalHP, partialHP, experience, xpRadius, proficiency, salary, chanceToDie;
     public Weapon activeW, meelee, ranged;
     public ArrayList<Item> itens;
     public AgentRenderer soldierRenderer;
-    public Soldier engagedEnemy;
-    public boolean alive, active, inRange;
+
+    public boolean alive, active, ready;
+    public long lastAttack = 0;
 
     public Soldier(Weapon meelee, Weapon ranged, Vector2 position, Color color) {
         super(position, color);
         soldierRenderer = new AgentRenderer(batch, camera, new Texture("warriors.png"));
-        this.id = counterAgents;
         this.level = 1;
         this.experience = 0;
         this.chanceToDie = random(0.00f,0.51f);
@@ -41,15 +42,16 @@ public class Soldier extends Agent {
         this.meelee = meelee;
         this.ranged = ranged;
         if(ranged.id==4){
-            activeW = ranged;
+            this.activeW = ranged;
         }
         else {
-            activeW = meelee;
+            this.activeW = meelee;
         }
-        engagedEnemy = null;
-        alive = true;
-        active = true;
-        inRange = false;
+        this.engagedEnemy = null;
+        this.alive = true;
+        this.active = true;
+        this.inRange = false;
+        this.ready = true;
     }
 
     public void atualizaAC(int ca){
@@ -60,7 +62,7 @@ public class Soldier extends Agent {
         seek.target.coords.set((this.levelManager.tileWidth / 2),
                 ((this.levelManager.totalPixelHeight/2)+64));
         position.coords.set(
-                (this.levelManager.tileWidth / 2)+32,
+                (this.levelManager.tileWidth / 2)+96,
                 (this.levelManager.totalPixelHeight/2)+64);
     }
     public void setInitialPosition2(){
@@ -144,17 +146,15 @@ public class Soldier extends Agent {
         }
     }
 
-    public boolean readyToAttack(){
-        if(!activeW.meelee){
-            if (activeW.isLoaded){
-                return true;
+    public void readyToAttack(){
+        if(!ready){
+            long tim = System.nanoTime();
+            tim = tim - lastAttack;
+            tim = tim/1000000;
+            tim = tim/1000;
+            if(tim >= activeW.timeToUse){
+                ready = true;
             }
-            else{
-                return false;
-            }
-        }
-        else{
-            return true;
         }
     }
 
@@ -167,84 +167,82 @@ public class Soldier extends Agent {
         }
     }
 
+    public void enemyInRange(){
+        if(engagedEnemy!=null) {
+            Position localization;
+            localization = engagedEnemy.getPosition();
+            if (localization.coords.dst(position.coords) <= activeW.range) {
+                inRange = true;
+            } else {
+                inRange = false;
+            }
+        }
+    }
 
+    @Override
     public void escolheAlvo(Array<Group> enemies){
-        Soldier enemy;
-        if(!inRange) {
-            if (this.engagedEnemy == null) {
+        if(enemies!=null) {
+            Soldier enemy;
+            if (!inRange) {
+                //if (this.engagedEnemy == null) {
                 float dist = position.coords.dst(enemies.get(0).soldiers.get(0).position.coords);
                 enemy = enemies.get(0).soldiers.get(0);
                 for (int i = 0; i < enemies.size; i++) {
                     for (int j = 0; j < enemies.get(i).soldiers.size; j++) {
                         if (position.coords.dst(enemies.get(i).soldiers.get(j).position.coords) <= dist) {
                             enemy = enemies.get(i).soldiers.get(j);
+                            dist = position.coords.dst(enemies.get(i).soldiers.get(j).position.coords);
                         }
                     }
                 }
                 this.engagedEnemy = enemy;
+                // }
+                setGoal(this.engagedEnemy.position.coords.x, this.engagedEnemy.position.coords.y, 2);
+            } else {
+                shouldMove = false;
+                nextNode = currentNode;
             }
-            setGoal(this.engagedEnemy.position.coords.x, this.engagedEnemy.position.coords.y,2);
-        }
-        else{
-            setGoal(this.position.coords.x,this.position.coords.y,2);
         }
     }
 
-    public boolean enemyInRange(Array<Group> enemies){
-        Position localization;
-        for(int i=0;i<enemies.size;i++){
-            for(int j=0;j<enemies.get(i).soldiers.size;j++){
-                localization = enemies.get(i).soldiers.get(j).getPosition();
-                if(localization.coords.dst(position.coords) <= activeW.range){
-                    engagedEnemy = enemies.get(i).soldiers.get(j);
-                    setGoal(position.coords.x,position.coords.y,2);
-                    inRange = true;
-                    return true;
-                }
+    public void enemyDead(Array<Group> enemies){
+        if(engagedEnemy != null) {
+            if(engagedEnemy.partialHP<0){
+                inRange = false;
+                engagedEnemy = null;
             }
         }
-        inRange = false;
-        return false;
+        else{
+            inRange = false;
+        }
     }
 
     public float attack(){
         float attack = random(100.00f);
-        attack += activeW.abilityModifier * proficiency;
-        attack /= 5;
+        attack += (activeW.abilityModifier * proficiency);
+        attack = attack / 5;
+        lastAttack = System.nanoTime();
+        if(activeW.meelee){
+            slash.play(4.0f);
+        }
+        else{
+            bow.play(4.0f);
+        }
         if(attack>engagedEnemy.armorClass){
             float dmg = random(activeW.minDamage,activeW.maxDamage);
-            engagedEnemy.partialHP -= dmg+((activeW.abilityModifier * proficiency)/2);
+            dmg+=((activeW.abilityModifier * proficiency)/2);
+            System.out.println(this.id + " ESTÁ ATACANDO " + engagedEnemy.id
+                    +" COM DANO = "+dmg+" HP: "+engagedEnemy.partialHP+"//");
+            engagedEnemy.partialHP -= dmg;
+            System.out.println(engagedEnemy.partialHP);
+            hit.play(0.3f);
+        }
+        else{
+            block.play(0.3f);
         }
         this.activeW.isLoaded=false;
+        this.ready = false;
         return engagedEnemy.partialHP;
     }
 
-    public boolean enemyDead(Array<Group> enemies){
-        if(engagedEnemy != null) {
-            for (int i = 0; i < enemies.size; i++) {
-                for (int j = 0; j < enemies.get(i).soldiers.size; j++) {
-                    if (enemies.get(i).soldiers.get(j).id == engagedEnemy.id) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    public void analiseGoal(float x, float y){
-        if(x < this.position.coords.x){
-            x+=32;
-        }
-        else {
-            x-=32;
-        }
-        if(y < this.position.coords.y){
-            y+=32;
-        }
-        else {
-            y-=32;
-        }
-        setGoal(x,y,2);
-    }
 }

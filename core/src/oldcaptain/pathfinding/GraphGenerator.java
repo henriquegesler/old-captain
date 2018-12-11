@@ -7,6 +7,7 @@ import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer.Cell;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import oldcaptain.movement.Position;
 
 /**
  *
@@ -25,12 +26,11 @@ public class GraphGenerator {
                 TileNode newNode = new TileNode();
                 newNode.setIsObstacle(isObstacle(map, j, i));
                 newNode.setIsWater(isWater(map, j, i));
-                newNode.setPosition(
-                        new Vector2(
-                                j * LevelManager.tileWidth + LevelManager.tileWidth / 2,
-                                i * LevelManager.tileHeight + LevelManager.tileHeight / 2
-                        )
-                );
+                Position pos = new Position(new Vector2(
+                        j * LevelManager.tileWidth + LevelManager.tileWidth / 2,
+                        i * LevelManager.tileHeight + LevelManager.tileHeight / 2
+                ));
+                newNode.setPosition(pos);
 
                 nodes.add(newNode);
             }

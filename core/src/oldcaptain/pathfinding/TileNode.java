@@ -3,6 +3,7 @@ package oldcaptain.pathfinding;
 import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import oldcaptain.movement.Position;
 
 /**
  *
@@ -12,17 +13,34 @@ public class TileNode {
 
     private final Array<Connection<TileNode>> connections = new Array<>();
     private final int index;
+    private int ocuppiedByWhom;
     private boolean isObstacle;
+    private boolean isOcuppied;
     private boolean isWater;
-    public Vector2 position;
+    public Position position;
     
     public TileNode() {
         index = Incrementer.nextIndex();
-        position = Vector2.Zero;
+        position = new Position(Vector2.Zero);
+        isOcuppied = false;
     }
     
     public int getIndex() {
         return index;
+    }
+
+    public boolean isOcuppied(){ return isOcuppied; }
+
+    public int ocuppiedBy(){ return ocuppiedByWhom; }
+
+    public void setIsOcuppied(int whom){
+        this.isOcuppied = true;
+        this.ocuppiedByWhom = whom;
+    }
+
+    public void isNotOcuppied(){
+        this.isOcuppied = false;
+        this.ocuppiedByWhom = -1;
     }
 
     /**
@@ -42,14 +60,14 @@ public class TileNode {
     /**
      * @return the position
      */
-    public Vector2 getPosition() {
+    public Position getPosition() {
         return position;
     }
 
     /**
      * @param position the position to set
      */
-    public void setPosition(Vector2 position) {
+    public void setPosition(Position position) {
         this.position = position;
     }
 

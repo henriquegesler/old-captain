@@ -3,6 +3,7 @@ package oldcaptain.characters;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import oldcaptain.graphics.AgentRenderer;
 import oldcaptain.itens.Weapon;
 
@@ -11,8 +12,9 @@ import static oldcaptain.OldCaptain.batch;
 import static oldcaptain.OldCaptain.camera;
 
 public class Captain extends Soldier {
-    public static int MAX_ACTION=2;
     public String name;
+    public Vector2 desiredPosition;
+    public Group myGroup;
 
     public Captain(String name, Weapon meelee, Weapon ranged, Vector2 position, Color color) {
         super(meelee, ranged, position, color);
@@ -23,8 +25,9 @@ public class Captain extends Soldier {
         this.salary = random(4.50f,6.01f);
         this.level = 4;
         this.proficiency = random(8.00f,10.01f);
-        this.actualAction = MAX_ACTION;
         soldierRenderer = new AgentRenderer(batch, camera, new Texture("captains.png"));
+        desiredPosition = this.position.coords;
+        this.captain = true;
     }
 
     public void levelUP(){
@@ -59,8 +62,29 @@ public class Captain extends Soldier {
         }
     }
 
+    @Override
+    public void update(Array<Group> all, float delta, Array<Group> enemies) {
+        super.update(all, delta, enemies);
+        desiredPosition = nextNode.position.coords;
+    }
+
     public float contractCost(){
         float cost = 20;
         return (cost+(proficiency/2.00f)+(totalHP/5.00f)+(salary/2));
+    }
+
+    public void setMyGroup(Group g){this.myGroup = g;}
+
+    @Override
+    public void verificaFormacao(){
+        int nearMe=myGroup.soldiers.size;
+        for (int i = 0; i < myGroup.soldiers.size; i++) {
+            if(myGroup.soldiers.get(i).position.coords.dst(this.position.coords) > 96){
+                nearMe--;
+            }
+        }
+        if(myGroup.soldiers.size*2/3 > nearMe){
+            this.shouldMove = false;
+        }
     }
 }

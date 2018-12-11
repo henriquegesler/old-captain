@@ -41,6 +41,7 @@ public class GraphRenderer {
 
     private final FrameBuffer fbo;
     private TextureRegion offlineRenderedGraph;
+    public int maxSize;
 
     public GraphRenderer(SpriteBatch batch, ShapeRenderer shapeRenderer) {
         this.batch = batch;
@@ -56,14 +57,14 @@ public class GraphRenderer {
     private void renderConnection(Connection<TileNode> c) {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(getConnectionColor(c));
-        shapeRenderer.line(c.getFromNode().getPosition(), c.getToNode().getPosition());
+        shapeRenderer.line(c.getFromNode().getPosition().coords, c.getToNode().getPosition().coords);
         shapeRenderer.end();
     }
 
     private void renderNode(TileNode n) {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(nodeColors[n.isObstacle() ? 1 : 0]);
-        shapeRenderer.translate(n.getPosition().x, n.getPosition().y, 0);
+        shapeRenderer.translate(n.getPosition().coords.x, n.getPosition().coords.y, 0);
         shapeRenderer.circle(0, 0, 4);
         shapeRenderer.identity();
         shapeRenderer.end();
@@ -88,7 +89,8 @@ public class GraphRenderer {
 
     private void renderGraph(TileGraph g) {
         Array<TileNode> nodes = g.getAllNodes();
-
+        maxSize = nodes.size;
+        System.out.println(maxSize);
         for (TileNode n : nodes) {
             for (Connection<TileNode> c : n.getConnections()) {
                 renderConnection(c);

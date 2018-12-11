@@ -1,6 +1,9 @@
 package oldcaptain;
 
 import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.utils.Array;
+import oldcaptain.characters.Group;
+import oldcaptain.characters.Soldier;
 import oldcaptain.graphics.Facing;
 import oldcaptain.movement.Position;
 import oldcaptain.movement.Steering;
@@ -19,18 +22,18 @@ import com.badlogic.gdx.math.Vector2;
 import java.util.Iterator;
 import static oldcaptain.LevelManager.graph;
 
+import static oldcaptain.LevelManager.totalPixelHeight;
+import static oldcaptain.LevelManager.totalPixelWidth;
 import static oldcaptain.OldCaptain.counterAgents;
+import static oldcaptain.OldCaptain.march;
+import static oldcaptain.OldCaptain.stage2Level;
 
 /**
  *
  * @author Flávio Coutinho <fegemo@gmail.com>
  */
-public class Agent {
+public class Agent{
 
-    public static float MAX_MOVE = 9.0f;
-    public static int MAX_ACTION = 1;
-    public int actualAction;
-    public float actualMove;
     public Position position;
     protected final Algorithm seek;
     private IndexedAStarPathFinder pathFinder;
@@ -40,15 +43,20 @@ public class Agent {
     private final float fullSpeed = 75;
     private static final float MIN_DISTANCE_CONSIDERED_ZERO_SQUARED = (float) Math.pow(2.0f, 2);
     private Facing facing;
-    private TileNode nextNode, currentNode;
+    protected TileNode nextNode;
+    protected TileNode currentNode;
     public LevelManager levelManager;
+    public Soldier engagedEnemy;
 
     public Color color;
-    private boolean shouldMove;
+    public boolean shouldMove, captain, inRange;
+    public int id, waiting=0;
 
     public Agent(Vector2 position, Color color) {
         counterAgents++;
+        this.id = counterAgents;
         this.position = new Position(position);
+        LevelManager.graph.getNodeAtCoordinates((int) Math.floor(position.x),(int) Math.floor(position.y)).setIsOcuppied(this.id);
         this.color = color;
         this.steeringTarget = new Target(position);
         this.seek = new Seek(fullSpeed);
@@ -57,8 +65,8 @@ public class Agent {
         this.pathIterator = this.path.iterator();
         this.facing = Facing.SOUTH;
         this.shouldMove = false;
-        this.actualMove = MAX_MOVE;
-        this.actualAction = MAX_ACTION;
+        this.captain = false;
+        this.currentNode = LevelManager.graph.getNodeAtCoordinates((int) Math.floor(position.x),(int) Math.floor(position.y));
 
     }
 
@@ -77,38 +85,121 @@ public class Agent {
      *
      * @param delta tempo desde a última atualização.
      */
-    public void update(float delta) {
-        shouldMove = true;
-
-        // verifica se atingimos nosso objetivo imediato
+    public void update(Array<Group> all, float delta, Array<Group> enemies) {
+        // verifica se tem um proximo lugar pra ir
+        if(nextNode != null){
+            if(nextNode.isOcuppied() && nextNode.ocuppiedBy() != this.id){
+                shouldMove = false;
+                //Essa interação serve para não atravessar personagens em combate
+                if(all != null) {
+                    for (int i = 0; i < all.size; i++) {
+                        for (int j = 0; j < all.get(i).soldiers.size; j++) {
+                            if (all.get(i).soldiers.get(j).id == nextNode.ocuppiedBy()) {
+                                Soldier soldier = all.get(i).soldiers.get(j);
+                                if (!soldier.inRange) {
+                                    waiting++;
+                                }
+                            }
+                        }
+                    }
+                }
+                else{
+                    waiting++;
+                }
+            }
+            else{
+                shouldMove = true;
+            }
+        }
+        //verifica se é capitao e se seu time esta perto ou longe
+        if(captain) {
+            this.verificaFormacao();
+        }
+        this.escolheAlvo(enemies);
+        // verifica se atingiu o objetivo imediato
         if (position.coords.dst2(steeringTarget.coords) < MIN_DISTANCE_CONSIDERED_ZERO_SQUARED) {
             // procurar se temos outra conexão na nossa rota
             // e, caso afirmativo, definir o nó de chegada como novo target
             if (shouldMove = pathIterator.hasNext()) {
-                TileConnection nextConnection = pathIterator.next();
-                nextNode = nextConnection.getToNode();
-                steeringTarget.coords = nextNode.getPosition();
-
-
-                // atualiza a velocidade do "seek" de acordo com o terreno (a conexão)
-                this.seek.maxSpeed = fullSpeed - (fullSpeed / 2.0f) * (nextConnection.getCost() - 1) / (this.levelManager.maxCost - 1);
+                if(waiting==0){
+                    TileConnection nextConnection = pathIterator.next();
+                    nextNode = nextConnection.getToNode();
+                    steeringTarget.coords = nextNode.getPosition().coords;
+                    //verficamos se o nó para onde vamos está ocupado
+                    //caso esteja, ele ficará parado
+                    if(nextNode.isOcuppied()){
+                        shouldMove = false;
+                        //Essa interação serve para não atravessar personagens em combate
+                        if(all != null) {
+                            for (int i = 0; i < all.size; i++) {
+                                for (int j = 0; j < all.get(i).soldiers.size; j++) {
+                                    if (all.get(i).soldiers.get(j).id == nextNode.ocuppiedBy()) {
+                                        Soldier soldier = all.get(i).soldiers.get(j);
+                                        if (!soldier.inRange) {
+                                            waiting++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else{
+                            waiting++;
+                        }
+                    }
+                    //Caso não esteja, liberamos o espaço original
+                    //e habilitamos para que ele se mova para o próximo nó
+                    else{
+                        if(captain){
+                            this.verificaFormacao();
+                            if(shouldMove){
+                                nextNode.setIsOcuppied(this.id);
+                                waiting = 0;
+                            }
+                        }
+                        else{
+                            nextNode.setIsOcuppied(this.id);
+                            waiting = 0;
+                        }
+                    }
+                    // atualiza a velocidade do "seek" de acordo com o terreno (a conexão)
+                    this.seek.maxSpeed = fullSpeed - (fullSpeed / 2.0f) * (nextConnection.getCost() - 1) / (this.levelManager.maxCost - 1);
+                }
+                else{
+                    if(nextNode.isOcuppied()){
+                        shouldMove = false;
+                        waiting++;
+                    }
+                    else{
+                        nextNode.setIsOcuppied(this.id);
+                        waiting = 0;
+                    }
+                }
             }
         } else if (position.coords.dst2(steeringTarget.coords) < MIN_DISTANCE_CONSIDERED_ZERO_SQUARED * 6) {
+            if(currentNode != null){
+                currentNode.isNotOcuppied();
+            }
             currentNode = nextNode;
+            currentNode.setIsOcuppied(this.id);
+        }
+
+        if(waiting>35){
+            if(shouldMove = pathIterator.hasNext()){
+                TileConnection nextConnection = pathIterator.next();
+                nextNode = nextConnection.getToNode();
+                steeringTarget.coords = nextNode.getPosition().coords;
+                nextNode.setIsOcuppied(this.id);
+                waiting = 0;
+                this.seek.maxSpeed = fullSpeed - (fullSpeed / 2.0f) * (nextConnection.getCost() - 1) / (this.levelManager.maxCost - 1);
+            }
         }
 
         // integra
-        if (shouldMove && actualMove > 0) {
-            /**
-             * Mudança será feita aqui
-             * by: Henrique Gesler 10/2018
-             */
+        if (shouldMove) {
+
             Steering steering = seek.steer(this.position);
-            if(pathIterator.hasNext()){
-                TileConnection nextConnection = pathIterator.next();
-                actualMove -= nextConnection.getCost();
-            }
-            position.integrate(steering, delta);
+            //march.play(0.1f);
+            position.integrate(steering,delta);
 
             // verifica o vetor velocidade para determinar a orientação
             float angle = steering.velocity.angle();
@@ -123,34 +214,20 @@ public class Agent {
      * @param y coordenada y do ponteiro do mouse.
      */
     public void setGoal(float x, float y, int heuristic) {
-        if(x>1792){
-            x=1790;
-        }
+
         TileNode startNode = this.levelManager.graph
                 .getNodeAtCoordinates(
                         (int) this.position.coords.x,
                         (int) this.position.coords.y);
         TileNode targetNode = this.levelManager.graph
                 .getNodeAtCoordinates((int) Math.floor(x), (int) Math.floor(y));
-
         path.clear();
         pathFinder.metrics.reset();
         // Finding a new nearest target from target for an obstacle target
         try {
-            TileNode target = targetNode;
-            int k = 0;
-            while (target.isObstacle()) {
-                for (int i = 0; i < 3; i++) {
-                    for (int j = 0; j < 3; j++) {
-                        if (target.isObstacle()) {
-                            target = this.levelManager.graph.getNodeAtCoordinates(
-                                    (int) targetNode.getPosition().x + 32 - (32 * i), (int) targetNode.getPosition().y - (32 * (1 + k)) + (32 * (j + k)));
-                        }
-                    }
-                }
-                k++;
+            if((targetNode.isOcuppied() || targetNode.isObstacle())){
+                //targetNode = newPosition2(targetNode,startNode);
             }
-            targetNode = target;
             // AQUI ESTAMOS CHAMANDO O ALGORITMO A* (instância pathFinder) 
             if (heuristic == 1) {
                 pathFinder.searchConnectionPath(startNode, targetNode,
@@ -165,20 +242,9 @@ public class Agent {
                         new Heuristic<TileNode>() {
                     public float estimate(TileNode n, TileNode n1) {
                         float x, y;
-                        x = n1.getPosition().x - n.getPosition().x;
-                        y = n1.getPosition().y - n.getPosition().y;
+                        x = n1.getPosition().coords.x - n.getPosition().coords.x;
+                        y = n1.getPosition().coords.y - n.getPosition().coords.y;
                         return (float) Math.sqrt(Math.pow((double) y, 2) + Math.pow((double) x, 2)) / 32;
-                    }
-                }, path);
-            }
-            if (heuristic == 3) {
-                pathFinder.searchConnectionPath(startNode, targetNode,
-                        new Heuristic<TileNode>() {
-                    public float estimate(TileNode n, TileNode n1) {
-                        float x, y;
-                        x = (float) ((float) Math.ceil(n1.getPosition().x / 32) - Math.ceil(n.getPosition().x / 32));
-                        y = (float) ((float) Math.ceil(n1.getPosition().y / 32) - Math.ceil(n.getPosition().y / 32));
-                        return Math.max(x, y);
                     }
                 }, path);
             }
@@ -217,9 +283,9 @@ public class Agent {
     }
 
     private float getPercentageOfNodeTraversalConcluded() {
-        float totalDistance2 = currentNode.getPosition()
-                .dst2(nextNode.getPosition());
-        float remainingDistance2 = position.coords.dst2(nextNode.getPosition());
+        float totalDistance2 = currentNode.getPosition().coords
+                .dst2(nextNode.getPosition().coords);
+        float remainingDistance2 = position.coords.dst2(nextNode.getPosition().coords);
         return (totalDistance2 - remainingDistance2) / totalDistance2;
     }
 
@@ -249,14 +315,145 @@ public class Agent {
         return pathFinder.metrics;
     }
 
-    /**
-     * Acrescentando a função: resetaMove e resetaAction
-     * by: Henrique Gesler 10/2018
-     */
-    public void resetaMove(){
-        actualMove = MAX_MOVE;
+    public TileNode newPosition(TileNode target, TileNode startNode){
+        TileNode t;
+        Vector2 v = new Vector2();
+        int k = 0;
+        if(!target.equals(startNode)){
+            while ((target.isOcuppied() && target.ocuppiedBy()!=this.id) || target.isObstacle()) {
+                int exp;
+                float xInicial, yInicial;
+                exp = 3 + (k * 2);
+                xInicial = startNode.position.coords.x - 32 * (1 + k);
+                yInicial = startNode.position.coords.y - 32 * (1 + k);
+                /**
+                 * Iteração que verifica as linhas acima e abaixo do alvo
+                 * A cada novo k, sobe um posição e desce uma posiçao, de forma que não verifique os mesmos
+                 * quadrados já verificados num k anterior.
+                 * */
+                for (int j = 0; j < 2; j++) {
+                    v.y = yInicial + 32 * (j * 2 * (1 + k));
+                    if (v.y >= 0 && v.y <= totalPixelHeight) {
+                        for (int i = 0; i < exp; i++) {
+                            v.x = xInicial + 32 * i;
+                            if (v.x >= 0 && v.x <= totalPixelWidth) {
+                                t = this.levelManager.graph.getNodeAtCoordinates((int) Math.floor(v.x), (int) Math.floor(v.y));
+                                if (!t.isObstacle() & (!t.isOcuppied() || t.ocuppiedBy()==this.id)) {
+                                    target = t;
+                                    i = exp;
+                                    j = exp;
+                                }
+                            }
+                        }
+                    }
+                }
+                /**
+                 * Iteração que verifica as colunas a esquerda e a direita do alvo
+                 * A cada novo k, esquerda uma posição e vai para a direita, de forma que não verifique os mesmos
+                 * quadrados já verificados num k anterior. X estático, lê as colunas
+                 * */
+                yInicial = startNode.position.coords.y - 32 * (k);
+                for (int j = 0; j < 2; j++) {
+                    v.x = xInicial + 32 * (j * 2 * (1 + k));
+                    if (v.x >= 0 && v.x <= totalPixelWidth) {
+                        for (int i = 0; i < (exp-2); i++) {
+                            v.y = yInicial + 32 * i;
+                            if (v.y >= 0 && v.y <= totalPixelHeight) {
+                                t = this.levelManager.graph.getNodeAtCoordinates((int) Math.floor(v.x), (int) Math.floor(v.y));
+                                if (!t.isObstacle() & (!t.isOcuppied() || t.ocuppiedBy()==this.id)) {
+                                    target = t;
+                                    i = exp;
+                                    j = exp;
+                                }
+                            }
+                        }
+                    }
+                }
+                k++;
+            }
+            return target;
+        }
+        else return startNode;
     }
-    public void resetaAction(){
-        actualAction = MAX_ACTION;
+
+    public TileNode newPosition2(TileNode target, TileNode startNode){
+        TileNode t;
+        Vector2 v = new Vector2();
+        int k = 0;
+        float distancia=0;
+       // if(target != startNode){
+            //while ((target.isOcuppied() && target.ocuppiedBy()!=this.id) || target.isObstacle()) {
+                int exp;
+                boolean primeiro=false;
+                float xInicial, yInicial;
+                exp = 3 + (k * 2);
+                xInicial = startNode.position.coords.x - 32 * (1 + k);
+                yInicial = startNode.position.coords.y - 32 * (1 + k);
+                /**
+                 * Iteração que verifica as linhas acima e abaixo do alvo
+                 * A cada novo k, sobe um posição e desce uma posiçao, de forma que não verifique os mesmos
+                 * quadrados já verificados num k anterior.
+                 * */
+                for (int j = 0; j < 2; j++) {
+                    v.y = yInicial + 32 * (j * 2 * (1 + k));
+                    if (v.y >= 0 && v.y <= totalPixelHeight) {
+                        for (int i = 0; i < exp; i++) {
+                            v.x = xInicial + 32 * i;
+                            if (v.x >= 0 && v.x <= totalPixelWidth) {
+                                t = this.levelManager.graph.getNodeAtCoordinates((int) Math.floor(v.x), (int) Math.floor(v.y));
+                                if (!t.isObstacle() && (!t.isOcuppied() || t.ocuppiedBy()==this.id)) {
+                                    if(!primeiro){
+                                        distancia = t.position.coords.dst(this.engagedEnemy.position.coords);
+                                        primeiro = true;
+                                    }
+                                    if(t.position.coords.dst(this.engagedEnemy.position.coords) <= distancia){
+                                        target = t;
+                                        distancia = t.position.coords.dst(this.engagedEnemy.position.coords);
+                                        i = exp;
+                                        j = exp;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                /**
+                 * Iteração que verifica as colunas a esquerda e a direita do alvo
+                 * A cada novo k, esquerda uma posição e vai para a direita, de forma que não verifique os mesmos
+                 * quadrados já verificados num k anterior. X estático, lê as colunas
+                 * */
+                yInicial = startNode.position.coords.y - 32 * (k);
+                for (int j = 0; j < 2; j++) {
+                    v.x = xInicial + 32 * (j * 2 * (1 + k));
+                    if (v.x >= 0 && v.x <= totalPixelWidth) {
+                        for (int i = 0; i < (exp-2); i++) {
+                            v.y = yInicial + 32 * i;
+                            if (v.y >= 0 && v.y <= totalPixelHeight) {
+                                t = this.levelManager.graph.getNodeAtCoordinates((int) Math.floor(v.x), (int) Math.floor(v.y));
+                                if (!t.isObstacle() && (!t.isOcuppied() || t.ocuppiedBy()==this.id)) {
+                                    if(!primeiro){
+                                        distancia = t.position.coords.dst(this.engagedEnemy.position.coords);
+                                        primeiro = true;
+                                    }
+                                    if(t.position.coords.dst(this.engagedEnemy.position.coords) <= distancia){
+                                        target = t;
+                                        distancia = t.position.coords.dst(this.engagedEnemy.position.coords);
+                                        i = exp;
+                                        j = exp;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                //k++;
+            //}
+            return target;
+       // }
+        //else return startNode;
     }
+
+    public void verificaFormacao(){}
+
+    public void escolheAlvo(Array<Group> enemies){}
 }
